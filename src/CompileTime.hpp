@@ -1,11 +1,12 @@
 #pragma once
 
 
+#include <cassert>
 #include <list>
 #include <map>
-#include <string>
+#include <string>               // getline
 #include <sstream>
-#include <cassert>
+#include <vector>
 
 
 #ifndef M_PI
@@ -80,3 +81,17 @@ inline std::string toString( T a )
     return tmp.str();
 }
 
+
+inline std::vector<std::string> split
+(
+    std::string const & src,
+    char const delim
+)
+{
+    std::stringstream ss( src );
+    std::string item;
+    std::vector< std::string > result;
+    while ( std::getline( ss, item, delim ) )
+        result.push_back( item );
+    return result;
+}
