@@ -2,6 +2,8 @@
 
 
 #include <cassert>
+#include <ctime>
+#include <iomanip>              // get_time
 #include <list>
 #include <map>
 #include <string>               // getline
@@ -81,6 +83,23 @@ inline std::string toString( T a )
     return tmp.str();
 }
 
+inline std::vector< double > toDouble
+(
+    std::vector< std::string >::const_iterator first,
+    std::vector< std::string >::const_iterator end
+)
+{
+    std::vector< double > res;
+    for ( auto it = first; it != end; ++it )
+    {
+        std::stringstream ss( *it );
+        double x;
+        ss >> x;
+        res.push_back( x );
+    }
+    return res;
+}
+
 
 inline std::vector<std::string> split
 (
@@ -95,3 +114,57 @@ inline std::vector<std::string> split
         result.push_back( item );
     return result;
 }
+
+
+namespace CompileTime {
+
+
+/**
+ * return time zone without daylight saving
+ */
+inline double getTimeZone( void )
+{
+    /* don't let the result of mktime become negative, you never know */
+    std::time_t t = 48 * 60 * 60;
+    /* mktime( gmtime( ... ) ) here mktime assumes local time i.e. when converting back to unix time it subtracts 'time zone shift' */
+    return t - std::mktime( std::gmtime( &t ) );
+    /* daylight saving is never included in this, because gmtime doesn't set it */
+}
+
+inline double timegm( std::tm time )
+{
+    static double timezone = getTimeZone();
+    assert( time.tm_isdst == 0 );
+    /* mktime  now tries again to subtract timezone from time, so we need to
+     * readd it to get proper UTC / GMT time */
+    return std::mktime( &time ) + timezone;
+}
+
+/**
+ * @param[in] dateString time as string, e.g. "2017-06-01 12:34:56"
+ * @param[in] formatString formatter for std::get_time e.g. "%Y-%m-%d %H:%M:%S"
+ * @param[in] timeZone e.g. +2*60*60 for CEST or +1*60*60 for CET. This is the
+ *            assumed time on dateString, i.e. the returned time is will have
+ *            timeZone subtracted. timeZone is in seconds!
+ * @param[in] locale not necessary if there are no string date parts like 'Wed'
+ * @return unix time stamp for date string
+ */
+inline double parseTime
+(
+    char const * const dateString  ,
+    char const * const formatString,
+    double       const timeZone = 0,
+    std::locale  const locale   = std::locale("")
+)
+{
+    std::tm t = {};
+    std::istringstream ss( dateString );
+    ss.imbue( locale );
+    ss >> std::get_time( &t, formatString );
+    if ( ss.fail() )
+        throw std::invalid_argument( "Given input date string couldn't be parsed with given format string." );
+    return CompileTime::timegm( t ) - timeZone;
+}
+
+
+} // namespace compileTime
