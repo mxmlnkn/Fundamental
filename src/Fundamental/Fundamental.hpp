@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <string>               // getline
 #include <sstream>
+#include <utility>              // pair
 #include <vector>
 
 #include "timeExtensions.hpp"
@@ -106,11 +107,16 @@ inline std::string replace
 }
 
 
+/**
+ * Inspired by numpy.genfromtxt and writetotxt
+ *
+ * Can't use std::map as input, because it would lose the order -.-
+ */
 template< typename T_Prec >
 inline void dumpData
 (
     std::string const & filePath,
-    std::map< std::string, std::vector< T_Prec > > const & data
+    std::vector< std::pair< std::string, std::vector< T_Prec > > > const & data
 )
 {
     std::ofstream file;
