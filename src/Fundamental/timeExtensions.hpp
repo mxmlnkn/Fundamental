@@ -47,7 +47,7 @@ double timegm( std::tm time );
 std::string dateFormatterToRegex
 (
     std::string s,
-    std::vector< std::string > * pNamedCaptureGroups = NULL
+    std::vector< std::string > * const pNamedCaptureGroups = NULL
 );
 
 /**

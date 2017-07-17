@@ -60,10 +60,21 @@ double parseTime
 std::string dateFormatterToRegex
 (
     std::string s,
-    std::vector< std::string > * pNamedCaptureGroups
+    std::vector< std::string > * const pNamedCaptureGroups    /* output */
 )
 {
-    std::map< std::string, std::string > shorthands = {
+    auto const formatter = s;
+    static std::map< std::string, std::pair< std::string, std::vector< std::string > > > resultCache = {};
+    {
+        auto const & it = resultCache.find( s );
+        if ( it != resultCache.end() )
+        {
+            *pNamedCaptureGroups = it->second.second;
+            return it->second.first;
+        }
+    }
+
+    static std::map< std::string, std::string > const shorthands = {
         { "%D", "%m / %d / %y "   },
         { "%r", "%I : %M : %S %p" },
         { "%R", "%H : %M"         },
@@ -73,7 +84,9 @@ std::string dateFormatterToRegex
         s = replace( s, rule.first, rule.second );
 
     /* Extract capture group names */
-    std::vector< std::string > specifiers = { "Y", "y", "m", "j", "d", "e", "w", "H", "M", "S", "p" };
+    static std::vector< std::string > const specifiers = {
+        "Y", "y", "m", "j", "d", "e", "w", "H", "M", "S", "p"
+    };
     if ( pNamedCaptureGroups != NULL )
     {
         pNamedCaptureGroups->clear();
@@ -91,7 +104,7 @@ std::string dateFormatterToRegex
 
     /* replace everything with regex rules and capture groups */
     /* Default regex is std::regex::ECMAScript */
-    std::map< std::string, std::string > rules = {
+    static std::map< std::string, std::string > const rules = {
         { "%%", "%"                         },
         { "%n", "t"                         },
         { "%t", "[ \\t]*"                   },
@@ -111,6 +124,9 @@ std::string dateFormatterToRegex
     for ( auto const & rule : rules )
         s = replace( s, rule.first, rule.second );
 
+    /* put in cache */
+    resultCache[ formatter ] = { s, *pNamedCaptureGroups };
+
     return s;
 }
 
@@ -122,8 +138,22 @@ double parseTime
 )
 {
     std::vector< std::string > namedCaptures = {};
-    auto const sDateRegex = dateFormatterToRegex( dateFormatter, &namedCaptures );
-    std::regex dateRegex( sDateRegex );
+    std::regex dateRegex;
+    std::string const sDateRegex = dateFormatterToRegex( dateFormatter, &namedCaptures );
+    {
+        static std::map< std::string, std::regex > regexCache = {};
+        auto const & it = regexCache.find( sDateRegex );
+        if ( it != regexCache.end() )
+            dateRegex = it->second;
+        else
+        {
+            dateRegex = std::regex( sDateRegex ); // FUCKING SLOW!!!!! for a simple constructor -.-
+            regexCache[ sDateRegex ] = dateRegex;
+        }
+    }
+
+    // https://stackoverflow.com/questions/20942450/why-c11-regex-libc-implementation-is-so-slow
+    //std::regex dateRegex( sDateRegex ); // FUCKING SLOW!!!!!
     std::smatch matches;
     auto const found = std::regex_match( sDate, matches, dateRegex );
     if ( not found )
