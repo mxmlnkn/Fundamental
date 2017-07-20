@@ -2,17 +2,6 @@
 
 
 #include <cassert>
-#include <ctime>
-#include <iomanip>              // get_time, setprecision, scientific
-#include <fstream>
-#include <limits>               // max10digits
-#include <list>
-#include <map>
-#include <stdexcept>
-#include <string>               // getline
-#include <sstream>
-#include <utility>              // pair
-#include <vector>
 
 #include "timeExtensions.hpp"
 #include "toString.hpp"
@@ -36,6 +25,72 @@ inline double factorial( int n )
     return res;
 }
 
+#include <cmath>
+#include <vector>
+
+template< typename T_Prec >
+inline
+T_Prec mean( std::vector<T_Prec> const vec )
+{
+    auto sum = T_Prec(0);
+    for ( auto const & elem : vec )
+        sum += elem;
+    return sum / vec.size();
+}
+
+template< typename T >
+inline double relErr( T const & x, T const & y )
+{
+    if ( x == y )   /* necessary to avoid .../0 */
+        return 0;
+    return ( x - y ) / std::abs( std::max( x, y ) );
+}
+
+#include <limits>
+
+template< typename T >
+inline double maxRelErr
+(
+    std::vector<T> const & x,
+    std::vector<T> const & y
+)
+{
+    if ( x.size() != y.size() )
+        return std::numeric_limits< double >::infinity();
+
+    double max = -std::numeric_limits< double >::infinity();
+    for ( size_t i = 0u; i < x.size(); ++i )
+    {
+        if ( std::isnan( x[i] ) && std::isnan( y[i] ) )
+            continue;
+        if ( std::isnan( x[i] ) || std::isnan( y[i] ) )
+        {
+            max = std::numeric_limits< double >::infinity();
+            break;
+        }
+        max = std::max( max, relErr( x[i], y[i] ) );
+    }
+
+    return max;
+}
+
+
+/**
+ * < (x - <x>)^2 > = < x^2 + <x>^2 - 2x<x> > = <x^2> - <x>^2
+ **/
+template< typename T_Prec >
+inline
+T_Prec stddev( std::vector<T_Prec> const vec )
+{
+    auto sum2 = T_Prec(0);
+    for ( auto const elem : vec )
+        sum2 += elem*elem;
+    auto avg = mean( vec );
+    auto const N = T_Prec( vec.size() );
+    return std::sqrt( ( sum2/N - avg*avg )*N/(N-1) );
+}
+
+
 namespace compileTime {
 
 /* Compile time power (also exact for integers) */
@@ -52,6 +107,9 @@ inline constexpr T pow( const T base, unsigned const exponent )
 #define CONTAINS(list,value) (std::find(list.begin(), list.end(), value) != list.end() )
 
 
+#include <vector>
+#include <string>                       // getline
+#include <sstream>
 
 inline std::vector< double > toDouble
 (
@@ -106,6 +164,14 @@ inline std::string replace
     return str;
 }
 
+
+#include <iomanip>              // setprecision, scientific, setw
+#include <fstream>
+#include <limits>               // max_digits10
+#include <stdexcept>
+#include <string>
+#include <vector>
+#include <utility>              // pair
 
 /**
  * Inspired by numpy.genfromtxt and writetotxt

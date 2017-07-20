@@ -70,6 +70,7 @@ std::vector< double > fitLine
 
     result[0] = (n * sxy - sx * sy) / (n * sxx - sx * sx);   // slope
     result[1] = (sy * sxx - sx * sxy)/ (n * sxx - sx * sx);  // offset
+    /* https://en.wikipedia.org/wiki/Pearson_correlation_coefficient */
     result[2] = (n * sxy - sx * sy)/ std::sqrt((n * sxx - sx * sx)*(n * syy - sy * sy)); // correlation
 
     return result;
