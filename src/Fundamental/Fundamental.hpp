@@ -43,32 +43,75 @@ inline double relErr( T const & x, T const & y )
 {
     if ( x == y )   /* necessary to avoid .../0 */
         return 0;
-    return ( x - y ) / std::abs( std::max( x, y ) );
+    return ( x - y ) / std::max( std::abs( x ), std::abs( y ) );
 }
 
 #include <limits>
 
+/**
+ * @param[in] nanStrategy basically it boils down to a truth table:
+ *            @verbatim
+ *                                                        nanStrategy
+ *            Possibilities:                    Bit  0  1  2  3  4  5  6  7
+ *              x=nan, y=nan => relErr=0,inf    0/1  0  0  0  0  1  1  1  1
+ *              x=nan, y=123 => relErr=0,inf    0/1  0  0  1  1  0  0  1  1
+ *              x=123, y=nan => relErr=0,inf    0/1  0  1  0  1  0  1  0  1
+ *            @endverbatim
+ *            So nanStrategy=0 means, that any nan will be ignored, i.e. 0
+ *            difference assumed
+ *            nanStrategy=7 will penalize any nan with infinite relativ error
+ *            Normally, permutations of the last two bits might be chose
+ *            symmetrically, but there might be use-cases where there is a
+ *            truth and another array amsked with NaN
+ *            nanStrategy= 0b011 = 3 is default, because it corresponds to
+ *            string representations being equal, i.e. nan == nan is what we
+ *            want
+ */
 template< typename T >
 inline double maxRelErr
 (
     std::vector<T> const & x,
-    std::vector<T> const & y
+    std::vector<T> const & y,
+    int            const nanStrategy = 3
 )
 {
     if ( x.size() != y.size() )
         return std::numeric_limits< double >::infinity();
 
-    double max = -std::numeric_limits< double >::infinity();
+    double max = 0;
     for ( size_t i = 0u; i < x.size(); ++i )
     {
         if ( std::isnan( x[i] ) && std::isnan( y[i] ) )
-            continue;
-        if ( std::isnan( x[i] ) || std::isnan( y[i] ) )
         {
-            max = std::numeric_limits< double >::infinity();
-            break;
+            if ( nanStrategy & ( 1 << 0 ) )
+            {
+                max = std::numeric_limits< double >::infinity();
+                break;
+            }
+            else
+                continue;
         }
-        max = std::max( max, relErr( x[i], y[i] ) );
+        if ( std::isnan( x[i] ) and not std::isnan( y[i] ) )
+        {
+            if ( nanStrategy & ( 1 << 1 ) )
+            {
+                max = std::numeric_limits< double >::infinity();
+                break;
+            }
+            else
+                continue;
+        }
+        if ( not std::isnan( x[i] ) and std::isnan( y[i] ) )
+        {
+            if ( nanStrategy & ( 1 << 2 ) )
+            {
+                max = std::numeric_limits< double >::infinity();
+                break;
+            }
+            else
+                continue;
+        }
+        max = std::max( max, std::abs( relErr( x[i], y[i] ) ) );
     }
 
     return max;
