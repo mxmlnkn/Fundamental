@@ -138,24 +138,25 @@ double parseTime
 )
 {
     std::vector< std::string > namedCaptures = {};
-    std::regex dateRegex;
+    std::regex * dateRegex;
     std::string const sDateRegex = dateFormatterToRegex( dateFormatter, &namedCaptures );
     {
         static std::map< std::string, std::regex > regexCache = {};
         auto const & it = regexCache.find( sDateRegex );
         if ( it != regexCache.end() )
-            dateRegex = it->second;
+            dateRegex = &it->second; // ... ... COPY CONSTRUCTOR ALSO SLOW on gcc 4.9 on another test system! -> use pointer
         else
         {
-            dateRegex = std::regex( sDateRegex ); // FUCKING SLOW!!!!! for a simple constructor -.-
-            regexCache[ sDateRegex ] = dateRegex;
+            std::cout << "Create new regex object for '" << sDateRegex << "'" << std::endl;
+            regexCache[ sDateRegex ] = std::regex( sDateRegex ); // FUCKING SLOW!!!!! for a simple constructor -.-
+            dateRegex = &regexCache[ sDateRegex ];
         }
     }
 
     // https://stackoverflow.com/questions/20942450/why-c11-regex-libc-implementation-is-so-slow
     //std::regex dateRegex( sDateRegex ); // FUCKING SLOW!!!!!
     std::smatch matches;
-    auto const found = std::regex_match( sDate, matches, dateRegex );
+    auto const found = std::regex_match( sDate, matches, *dateRegex );
     if ( not found )
         throw std::invalid_argument( "Couldn't parse give string with given formatter." );
     /* first in match is always the whole match, then followed by capture groups */
