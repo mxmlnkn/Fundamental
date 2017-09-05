@@ -267,3 +267,21 @@ inline void dumpData
 
     file.close();
 }
+
+#include <chrono>
+
+/* Can't simply use 'using', because now is a static method of
+ * high_resolution_clock class.. */
+inline std::chrono::time_point< std::chrono::high_resolution_clock > now( void )
+{
+    return std::chrono::high_resolution_clock::now();
+}
+
+inline double diffNow
+(
+    std::chrono::time_point< std::chrono::high_resolution_clock > const & t0,
+    std::chrono::time_point< std::chrono::high_resolution_clock > const & t1
+)
+{
+    return std::chrono::duration_cast< std::chrono::duration<double> >( t1 - t0 ).count();
+}
