@@ -8,6 +8,7 @@
 #include <map>
 #include <string>               // getline
 #include <sstream>
+#include <utility>
 #include <vector>
 
 #include "timeExtensions.hpp"
@@ -34,12 +35,20 @@ inline std::string toString( const std::list<T_DTYPE> ls )
     return out.str();
 }
 
-template< typename T_KEY, typename T_VAL >
-inline std::string toString( std::map<T_KEY,T_VAL> val )
+template< typename T_Key, typename T_Val >
+inline std::string toString( std::map<T_Key,T_Val> val )
 {
     std::stringstream out;
     for ( auto it = val.begin(); it != val.end(); ++it )
         out << "map[" << it->first << "] = " << it->second << "\n";
+    return out.str();
+}
+
+template< typename T_Key, typename T_Val >
+inline std::string toString( std::pair< T_Key, T_Val > x )
+{
+    std::stringstream out;
+    out << "pair( " << x.first << ", " << x.second << " )";
     return out.str();
 }
 
@@ -100,9 +109,10 @@ inline std::ostream & operator<<                                            \
     return out;                                                             \
 }
 
-template< typename K, typename V > REDIRECT_TO_STRING( std::map<K COMMA V> )
-template< typename T > REDIRECT_TO_STRING( std::list<T> )
-template< typename T > REDIRECT_TO_STRING( std::vector<T> )
+template< typename K, typename V > REDIRECT_TO_STRING( std::map<K COMMA V>  )
+template< typename K, typename V > REDIRECT_TO_STRING( std::pair<K COMMA V> )
+template< typename T             > REDIRECT_TO_STRING( std::list<T>         )
+template< typename T             > REDIRECT_TO_STRING( std::vector<T>       )
 REDIRECT_TO_STRING( std::tm )
 
 #undef REDIRECT_TO_STRING
