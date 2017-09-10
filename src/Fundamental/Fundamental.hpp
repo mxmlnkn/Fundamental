@@ -285,3 +285,35 @@ inline double diffNow
 {
     return std::chrono::duration_cast< std::chrono::duration<double> >( t1 - t0 ).count();
 }
+
+
+
+class RandomBitGenerator
+{
+private:
+    uint64_t           lastRandomNumber;
+    unsigned int       nBitsUsed       ;
+    unsigned int const nBitsUsable     ;
+
+public:
+    inline RandomBitGenerator()
+    : lastRandomNumber( std::rand() ),
+      nBitsUsed( 0 ),
+      nBitsUsable( std::floor( std::log2( (uint64_t) RAND_MAX ) + 1 ) )  // max 3 (has 2 bits). meh hard to do correct, because I can't add +1 to the max range of the same value... would get overflow, mah in almost any cases RAND_MAX will be at som 2^n-1, so it should be correct -.- Can't cover every edge case
+    {}
+
+    inline bool decide()
+    {
+        if ( nBitsUsed >= nBitsUsable )
+        {
+            lastRandomNumber = std::rand();
+            nBitsUsed        = 0;
+        }
+
+        ++nBitsUsed;
+        bool const bit = lastRandomNumber & uint64_t(1);
+        lastRandomNumber = lastRandomNumber >> 1;
+
+        return bit;
+    }
+};
