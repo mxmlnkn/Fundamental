@@ -1,6 +1,7 @@
 #pragma once
 
 
+#include <array>
 #include <cassert>
 #include <ctime>
 #include <iomanip>              // get_time
@@ -13,6 +14,63 @@
 
 #include "timeExtensions.hpp"
 #include "toString.hpp"
+
+
+template< typename T >
+inline std::string toString( T a );
+
+template< typename T_DTYPE >
+inline std::string toString( const std::list<T_DTYPE> ls );
+
+template< typename T_Key, typename T_Val >
+inline std::string toString( std::map<T_Key,T_Val> val );
+
+template< typename T_Key, typename T_Val >
+inline std::string toString( std::pair< T_Key, T_Val > x );
+
+template< typename T, int I >
+inline std::string toString( std::array<T,I> data );
+
+template< typename T >
+inline std::string toString( std::vector<T> data );
+
+inline std::string toString( std::tm const & data );
+
+
+
+/* Doesn't work, because already overloaded */
+/*
+template< typename T >
+inline std::ostream& operator<<( std::ostream & out, T const & data )
+{
+    out << toString( data );
+    return out;
+}
+*/
+
+/* https://stackoverflow.com/questions/13842468/comma-in-c-c-macro */
+#define COMMA ,
+#define REDIRECT_TO_STRING( TYPE )                                          \
+inline std::ostream & operator<<                                            \
+(                                                                           \
+    std::ostream & out,                                                     \
+    TYPE const & data                                                       \
+)                                                                           \
+{                                                                           \
+    out << toString( data );                                                \
+    return out;                                                             \
+}
+
+template< typename T, std::size_t I > REDIRECT_TO_STRING( std::array<T COMMA I> )
+template< typename K, typename V > REDIRECT_TO_STRING( std::map<K COMMA V>  )
+template< typename K, typename V > REDIRECT_TO_STRING( std::pair<K COMMA V> )
+template< typename T             > REDIRECT_TO_STRING( std::list<T>         )
+template< typename T             > REDIRECT_TO_STRING( std::vector<T>       )
+REDIRECT_TO_STRING( std::tm )
+
+#undef REDIRECT_TO_STRING
+#undef COMMA
+
 
 
 template< typename T >
@@ -52,6 +110,20 @@ inline std::string toString( std::pair< T_Key, T_Val > x )
     return out.str();
 }
 
+template< typename T, std::size_t I >
+inline std::string toString( std::array<T,I> data )
+{
+    std::stringstream out;
+    //out << std::setprecision(7) << std::setfill('0') << std::setw(9) << std::showpos;
+    out << "(";
+    if ( data.size() > 0 )
+        out << data[0];
+    for ( unsigned int i = 1; i < data.size(); ++i )
+        out << ", " << data[i];
+    out << ")";
+    return out.str();
+}
+
 template< typename T >
 inline std::string toString( std::vector<T> data )
 {
@@ -59,9 +131,9 @@ inline std::string toString( std::vector<T> data )
     //out << std::setprecision(7) << std::setfill('0') << std::setw(9) << std::showpos;
     out << "{";
     if ( data.size() > 0 )
-        out << data[0];
+        out << toString( data[0] );
     for ( unsigned int i = 1; i < data.size(); ++i )
-        out << ", " << data[i];
+        out << ", " << toString( data[i] );
     out << "}";
     return out.str();
 }
@@ -83,37 +155,3 @@ inline std::string toString( std::tm const & data )
     << "}\n";
     return out.str();
 }
-
-
-
-/* Doesn't work, because already overloaded */
-/*
-template< typename T >
-inline std::ostream& operator<<( std::ostream & out, T const & data )
-{
-    out << toString( data );
-    return out;
-}
-*/
-
-/* https://stackoverflow.com/questions/13842468/comma-in-c-c-macro */
-#define COMMA ,
-#define REDIRECT_TO_STRING( TYPE )                                          \
-inline std::ostream & operator<<                                            \
-(                                                                           \
-    std::ostream & out,                                                     \
-    TYPE const & data                                                       \
-)                                                                           \
-{                                                                           \
-    out << toString( data );                                                \
-    return out;                                                             \
-}
-
-template< typename K, typename V > REDIRECT_TO_STRING( std::map<K COMMA V>  )
-template< typename K, typename V > REDIRECT_TO_STRING( std::pair<K COMMA V> )
-template< typename T             > REDIRECT_TO_STRING( std::list<T>         )
-template< typename T             > REDIRECT_TO_STRING( std::vector<T>       )
-REDIRECT_TO_STRING( std::tm )
-
-#undef REDIRECT_TO_STRING
-#undef COMMA

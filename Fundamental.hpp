@@ -3,9 +3,6 @@
 
 #include <cassert>
 
-#include "timeExtensions.hpp"
-#include "toString.hpp"
-
 
 #ifndef M_PI
 #   define M_PI 3.14159265358979323846
@@ -14,12 +11,12 @@
 
 
 /**
- * \todo use stirling formula for large n
+ * @todo use stirling formula for large n
  **/
-inline double factorial( int n )
+inline long double factorial( int n )
 {
     assert( n > 0 );
-    double res = 1; // double is exact for integer values! meaning integer is a subset of floating point
+    long double res = 1; // double is exact for integer values! meaning integer is a subset of floating point (at least up to a certain size)
     for ( int i = 2; i <= n; ++i )
         res *= i;
     return res;
