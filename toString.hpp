@@ -17,22 +17,22 @@
 
 
 template< typename T >
-inline std::string toString( T a );
+inline std::string toString( T const & a );
 
 template< typename T_DTYPE >
-inline std::string toString( const std::list<T_DTYPE> ls );
+inline std::string toString( std::list<T_DTYPE> const & ls );
 
 template< typename T_Key, typename T_Val >
-inline std::string toString( std::map<T_Key,T_Val> val );
+inline std::string toString( std::map<T_Key,T_Val> const & val );
 
 template< typename T_Key, typename T_Val >
-inline std::string toString( std::pair< T_Key, T_Val > x );
+inline std::string toString( std::pair< T_Key, T_Val > const & x );
 
-template< typename T, int I >
-inline std::string toString( std::array<T,I> data );
+template< typename T, std::size_t I >
+inline std::string toString( std::array<T,I> const & data );
 
 template< typename T >
-inline std::string toString( std::vector<T> data );
+inline std::string toString( std::vector<T> const & data );
 
 inline std::string toString( std::tm const & data );
 
@@ -72,9 +72,12 @@ REDIRECT_TO_STRING( std::tm )
 #undef COMMA
 
 
-
+/**
+ * Watch out, for types which don't have operator<< overloaded this gets
+ * called recursively!
+ */
 template< typename T >
-inline std::string toString( T a )
+inline std::string toString( T const & a )
 {
     std::stringstream tmp;
     tmp << a;
@@ -82,7 +85,7 @@ inline std::string toString( T a )
 }
 
 template< typename T_DTYPE >
-inline std::string toString( const std::list<T_DTYPE> ls )
+inline std::string toString( std::list<T_DTYPE> const & ls )
 {
     std::stringstream out;
     out << "{";
@@ -94,7 +97,7 @@ inline std::string toString( const std::list<T_DTYPE> ls )
 }
 
 template< typename T_Key, typename T_Val >
-inline std::string toString( std::map<T_Key,T_Val> val )
+inline std::string toString( std::map<T_Key,T_Val> const & val )
 {
     std::stringstream out;
     for ( auto it = val.begin(); it != val.end(); ++it )
@@ -103,15 +106,17 @@ inline std::string toString( std::map<T_Key,T_Val> val )
 }
 
 template< typename T_Key, typename T_Val >
-inline std::string toString( std::pair< T_Key, T_Val > x )
+inline std::string toString( std::pair< T_Key, T_Val > const & x )
 {
     std::stringstream out;
     out << "pair( " << x.first << ", " << x.second << " )";
     return out.str();
 }
 
+/* template deduction for this (and operator<<) fails unfortunately :(,
+ * so operator<< not usable as tempalte paramaters would need to be specified! */
 template< typename T, std::size_t I >
-inline std::string toString( std::array<T,I> data )
+inline std::string toString( std::array<T,I> const & data )
 {
     std::stringstream out;
     //out << std::setprecision(7) << std::setfill('0') << std::setw(9) << std::showpos;
@@ -125,15 +130,15 @@ inline std::string toString( std::array<T,I> data )
 }
 
 template< typename T >
-inline std::string toString( std::vector<T> data )
+inline std::string toString( std::vector<T> const & data )
 {
     std::stringstream out;
     //out << std::setprecision(7) << std::setfill('0') << std::setw(9) << std::showpos;
     out << "{";
     if ( data.size() > 0 )
-        out << toString( data[0] );
+        out << data[0];
     for ( unsigned int i = 1; i < data.size(); ++i )
-        out << ", " << toString( data[i] );
+        out << ", " << data[i];
     out << "}";
     return out.str();
 }
