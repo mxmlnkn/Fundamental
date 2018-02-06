@@ -10,6 +10,22 @@
 #define INF (1.0/0.0)
 
 
+template< typename T, typename S >
+inline T ceilDiv( T a, S b )
+{
+    assert( b != S(0) );
+    assert( a == a );
+    assert( b == b );
+    return ( a + b - T(1) ) / b;
+}
+
+template< typename T >
+inline bool constexpr isPowerOfTwo( T const x )
+{
+    return ! ( x == T(0) ) && ! ( x & ( x - T(1) ) );
+}
+
+
 /**
  * @todo use stirling formula for large n
  **/
