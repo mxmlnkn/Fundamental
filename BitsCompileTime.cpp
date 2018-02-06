@@ -392,7 +392,7 @@ T inline diluteBitsRecursive( T const & rx )
 #include <iostream>
 
 
-int part1by1_d(int n)
+unsigned int part1by1(unsigned int n)
 {
 	n &= 0x0000ffff;
 	n = (n | (n << 8)) & 0x00FF00FF /* 0b 0000 0000 1111 1111 */;
@@ -404,7 +404,7 @@ int part1by1_d(int n)
 
 
 
-int part1by2_d(int n)
+unsigned int part1by2(unsigned int n)
 {
     n&= 0x000003ff;
     n = (n ^ (n << 16)) & 0xFF0000FF /* 0b 0000 0000 1111 1111 */;
@@ -412,6 +412,28 @@ int part1by2_d(int n)
     n = (n ^ (n <<  4)) & 0x030C30C3 /* 0b 0011 0000 1100 0011 */;
     n = (n ^ (n <<  2)) & 0x09249249 /* 0b 1001 0010 0100 1001 */;
     return n;
+}
+
+
+uint32_t UpdaterGPUBccBFM::interleave3(uint32_t x, uint32_t  y, uint32_t z)
+{
+	return part1by2(x) | (part1by2(y) << 1) | (part1by2(z) << 2);
+}
+
+
+uint32_t UpdaterGPUBccBFM::deinterleave3_X(uint32_t n)
+{
+    return unpart1by2(n);
+}
+
+uint32_t UpdaterGPUBccBFM::deinterleave3_Y(uint32_t n)
+{
+    return unpart1by2(n >> 1);
+}
+
+uint32_t UpdaterGPUBccBFM::deinterleave3_Z(uint32_t n)
+{
+    return unpart1by2(n >> 2);
 }
 
 
@@ -430,6 +452,8 @@ template< typename T > void testRectangularWaves( void )
     #undef TMP
 }
 
+#include <cstdlib>                      // rand, srand, ...
+
 template< typename T > void testDilution( void )
 {
     #define TMP(X,L)                                                        \
@@ -439,11 +463,102 @@ template< typename T > void testDilution( void )
             << std::bitset< sizeof(T) * CHAR_BIT >(X) << " => 0x"           \
             << std::bitset< sizeof(T) * CHAR_BIT >(x) << "\n";              \
     }
-    TMP( ~T(0), 1 ) //TMP( T( 2835127451ULL ), 1 )
-    TMP( ~T(0), 2 ) //TMP( T( 2835127451ULL ), 2 )
-    TMP( ~T(0), 3 ) //TMP( T( 2835127451ULL ), 3 )
-    TMP( ~T(0), 4 ) //TMP( T( 2835127451ULL ), 4 )
+    TMP( ~T(0), 1 ) TMP( T( 2835127451ull ), 1 )
+    TMP( ~T(0), 2 ) TMP( T( 2835127451ull ), 2 )
+    TMP( ~T(0), 3 ) TMP( T( 2835127451ull ), 3 )
+    TMP( ~T(0), 4 ) TMP( T( 2835127451ull ), 4 )
     #undef TMP
+}
+
+#include <chrono>
+
+void testDilution2( void )
+{
+    using T = unsigned int;
+
+    /* check against part1by1 */
+    std::cout << std::setfill('0') << std::hex;
+    for ( auto i = 0u; i < 10; ++i )
+    {
+        auto const x = std::rand();
+        auto const x1 = x & 0xFFFFul;
+        auto const x2 = x & 0x03FFul;
+        auto const y1 = part1by1( x );
+        auto const y2 = BitFunctions::diluteBitsRecursive< T, 1 >( x );
+        auto const z1 = part1by2( x );
+        auto const z2 = BitFunctions::diluteBitsRecursive< T, 2 >( x );
+        std::cout
+        << "0x" << std::setw( sizeof(T) * 2 ) << x1 << " -> "
+        << "0x" << std::setw( sizeof(T) * 2 ) << y1 << " =? "
+        << "0x" << std::setw( sizeof(T) * 2 ) << y2 << ( y1 != y2 ? " FAILED" : " OK" ) << "\n"
+        << "0x" << std::setw( sizeof(T) * 2 ) << x2 << " -> "
+        << "0x" << std::setw( sizeof(T) * 2 ) << z1 << " =? "
+        << "0x" << std::setw( sizeof(T) * 2 ) << z2 << ( y1 != y2 ? " FAILED" : " OK" ) << "\n";
+    }
+    std::cout << std::setfill(' ') << std::dec;
+
+    auto const nIterations = 123456789lu;
+    auto result = 0;
+
+    /* benchmark part1by1 */
+    auto const ta0 = std::chrono::high_resolution_clock::now();
+    for ( auto i = 0lu; i < nIterations; ++i )
+        result ^= part1by1( result ) | 0x12345;
+    auto const ta1 = std::chrono::high_resolution_clock::now();
+    std::cout
+    << nIterations <<  " using part1by1 (OLD) took "
+    << std::chrono::duration_cast< std::chrono::duration< double > >( ta1 - ta0 ).count()
+    << "s\n";
+
+    /* benchmark part1by1 using template function */
+    auto const tb0 = std::chrono::high_resolution_clock::now();
+    for ( auto i = 0lu; i < nIterations; ++i )
+        result ^= BitFunctions::diluteBitsRecursive< T, 1 >( result ) | 0x12345;
+    auto const tb1 = std::chrono::high_resolution_clock::now();
+    std::cout
+    << nIterations <<  " using part1by1 (NEW) took "
+    << std::chrono::duration_cast< std::chrono::duration< double > >( tb1 - tb0 ).count()
+    << "s\n";
+
+    /* benchmark part1by2 */
+    auto const tc0 = std::chrono::high_resolution_clock::now();
+    for ( auto i = 0lu; i < nIterations; ++i )
+        result ^= part1by2( result ) | 0x12345;
+    auto const tc1 = std::chrono::high_resolution_clock::now();
+    std::cout
+    << nIterations <<  " using part1by2 (OLD) took "
+    << std::chrono::duration_cast< std::chrono::duration< double > >( tc1 - tc0 ).count()
+    << "s\n";
+
+    /* benchmark part1by2 using template function */
+    auto const td0 = std::chrono::high_resolution_clock::now();
+    for ( auto i = 0lu; i < nIterations; ++i )
+        result ^= BitFunctions::diluteBitsRecursive< T, 1 >( result ) | 0x12345;
+    auto const td1 = std::chrono::high_resolution_clock::now();
+    std::cout
+    << nIterations <<  " using part1by2 (NEW) took "
+    << std::chrono::duration_cast< std::chrono::duration< double > >( td1 - td0 ).count()
+    << "s\n";
+
+    std::cout << "(result = " << result << ")\n";
+
+    /**
+     * Without optimiziation flags
+     *   10000000 using part1by1 (OLD) took 0.167011s
+     *   10000000 using part1by1 (NEW) took 0.23989s
+     *   10000000 using part1by2 (OLD) took 0.155597s
+     *   10000000 using part1by2 (NEW) took 0.239633s
+     * With -O3:
+     *   1234567890 using part1by1 (OLD) took 5.65365s
+     *   1234567890 using part1by1 (NEW) took 5.65245s
+     *   1234567890 using part1by2 (OLD) took 6.14224s
+     *   1234567890 using part1by2 (NEW) took 5.64983s
+     * Second time with -O3 to ensure that the NEW version of part1by2 is really faster:
+     *   123456789 using part1by1 (OLD) took 0.569411s
+     *   123456789 using part1by1 (NEW) took 0.568838s
+     *   123456789 using part1by2 (OLD) took 0.615687s
+     *   123456789 using part1by2 (NEW) took 0.566951s
+     */
 }
 
 template< typename T > void testLog( void )
@@ -498,6 +613,8 @@ int main()
     testDilution< unsigned int  >();
     std::cout << "== Bit Dilution for unsigned long ==\n";
     testDilution< unsigned long >();
+
+    testDilution2();
 }
 
 
