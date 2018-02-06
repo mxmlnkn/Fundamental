@@ -33,7 +33,7 @@ struct Pow<B,0> { static auto constexpr value = 1; };
  */
 template< unsigned long long int B, unsigned long long int X >
 struct FloorLog {
-    static_assert( B != 0 );
+    static_assert( B != 0, "" );
     static auto constexpr value = 1 + FloorLog< B, X/B >::value;
 };
 template< unsigned long long int B >
@@ -46,7 +46,7 @@ struct FloorLog<B,1> { static auto constexpr value = 0; };
  */
 template< unsigned long long int B, unsigned long long int X >
 struct CeilLog {
-    static_assert( B != 0 );
+    static_assert( B != 0, "" );
     static auto constexpr value = 1 + CeilLog< B, ceilDiv(X,B) >::value;
 };
 template< unsigned long long int B >
@@ -69,7 +69,7 @@ namespace BitPatterns {
 using Longest = unsigned long long int;
 using NBits   = unsigned char; /**< type for storing amounts bounded by bits of Longest */
 auto constexpr NBitsMax = std::numeric_limits< NBits >::max();
-static_assert( sizeof( Longest ) * CHAR_BIT <= NBitsMax );
+static_assert( sizeof( Longest ) * CHAR_BIT <= NBitsMax, "" );
 
 /**
  * Returns bit step function, i.e. N 1s to the right like 0b0000111
@@ -278,7 +278,7 @@ struct DiluteBitsCrumble<T,nSpacing,nStepsNeeded,0> { inline static T apply( T c
 template< typename T, unsigned char nSpacing >
 T inline diluteBitsRecursive( T const & rx )
 {
-    static_assert( nSpacing > 0 );
+    static_assert( nSpacing > 0, "" );
     /**
      * We are filling the zeros to the left, therefore we always can allow 1 bit
      * e.g. 000100010001 ... If we could rewrite the function to fill the 0s to
@@ -297,7 +297,7 @@ T inline diluteBitsRecursive( T const & rx )
      *   nBitsAllowed2 = nBits/(nSpacing+1) which yields 10 for 32
      */
     auto constexpr nBitsAvailable = sizeof(T) * CHAR_BIT;
-    static_assert( nBitsAvailable > 0 );
+    static_assert( nBitsAvailable > 0, "" );
     /**
      * For example for char, i.e. nBitsAvailable = 8:
      * Expectation for nSpacing = 4: 0000 0111 -> 0010 0001
@@ -335,7 +335,7 @@ T inline diluteBitsRecursive( T const & rx )
     auto constexpr nStepsNeeded = 1 + CompileTimeFunctions::CeilLog< 2, nBitsAllowed >::value;
     /* else the result is trivial as only the last bit is kept and therefore
      * maybe unexpected for the user */
-    //static_assert( nStepsNeeded > 0 );
+    //static_assert( nStepsNeeded > 0, "" );
     /*
     std::cout
     << "Dilute input " << (int)rx << " of size " << sizeof(T) << " Byte by " << (int) nSpacing << ":\n"
