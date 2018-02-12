@@ -1,5 +1,5 @@
 /*
-g++ -Wall -Wextra -std=c++11 BitsCompileTime.cpp -DMAIN_TEST_BITSCOMPILETIME && ./a.out
+g++ -x c++ -Wall -Wextra -O3 -std=c++11 BitsCompileTime.hpp -DMAIN_TEST_BITSCOMPILETIME && ./a.out
 */
 #pragma once
 
@@ -414,24 +414,43 @@ unsigned int part1by2(unsigned int n)
     return n;
 }
 
+uint32_t unpart1by1(uint32_t n)
+{
+	n&= 0x55555555;
+	n = (n ^ (n >> 1)) & 0x33333333;
+	n = (n ^ (n >> 2)) & 0x0f0f0f0f;
+	n = (n ^ (n >> 4)) & 0x00ff00ff;
+	n = (n ^ (n >> 8)) & 0x0000ffff;
+	return n;
+}
 
-uint32_t UpdaterGPUBccBFM::interleave3(uint32_t x, uint32_t  y, uint32_t z)
+uint32_t unpart1by2(uint32_t n)
+{
+    n&= 0x09249249;
+    n = (n ^ (n >>  2)) & 0x030c30c3;
+    n = (n ^ (n >>  4)) & 0x0300f00f;
+    n = (n ^ (n >>  8)) & 0xff0000ff;
+    n = (n ^ (n >> 16)) & 0x000003ff;
+    return n;
+}
+
+uint32_t interleave3(uint32_t x, uint32_t  y, uint32_t z)
 {
 	return part1by2(x) | (part1by2(y) << 1) | (part1by2(z) << 2);
 }
 
 
-uint32_t UpdaterGPUBccBFM::deinterleave3_X(uint32_t n)
+uint32_t deinterleave3_X(uint32_t n)
 {
     return unpart1by2(n);
 }
 
-uint32_t UpdaterGPUBccBFM::deinterleave3_Y(uint32_t n)
+uint32_t deinterleave3_Y(uint32_t n)
 {
     return unpart1by2(n >> 1);
 }
 
-uint32_t UpdaterGPUBccBFM::deinterleave3_Z(uint32_t n)
+uint32_t deinterleave3_Z(uint32_t n)
 {
     return unpart1by2(n >> 2);
 }
@@ -497,8 +516,10 @@ void testDilution2( void )
     }
     std::cout << std::setfill(' ') << std::dec;
 
-    auto const nIterations = 123456789lu;
-    auto result = 0;
+    auto const nIterations = 1234567890lu;
+    std::srand( std::chrono::duration_cast< std::chrono::duration< double > >(
+                std::chrono::high_resolution_clock::now().time_since_epoch() ).count() );
+    auto result = std::rand();
 
     /* benchmark part1by1 */
     auto const ta0 = std::chrono::high_resolution_clock::now();
@@ -533,7 +554,7 @@ void testDilution2( void )
     /* benchmark part1by2 using template function */
     auto const td0 = std::chrono::high_resolution_clock::now();
     for ( auto i = 0lu; i < nIterations; ++i )
-        result ^= BitFunctions::diluteBitsRecursive< T, 1 >( result ) | 0x12345;
+        result ^= BitFunctions::diluteBitsRecursive< T, 2 >( result ) | 0x12345;
     auto const td1 = std::chrono::high_resolution_clock::now();
     std::cout
     << nIterations <<  " using part1by2 (NEW) took "
@@ -543,21 +564,83 @@ void testDilution2( void )
     std::cout << "(result = " << result << ")\n";
 
     /**
-     * Without optimiziation flags
-     *   10000000 using part1by1 (OLD) took 0.167011s
-     *   10000000 using part1by1 (NEW) took 0.23989s
-     *   10000000 using part1by2 (OLD) took 0.155597s
-     *   10000000 using part1by2 (NEW) took 0.239633s
-     * With -O3:
-     *   1234567890 using part1by1 (OLD) took 5.65365s
-     *   1234567890 using part1by1 (NEW) took 5.65245s
-     *   1234567890 using part1by2 (OLD) took 6.14224s
-     *   1234567890 using part1by2 (NEW) took 5.64983s
-     * Second time with -O3 to ensure that the NEW version of part1by2 is really faster:
-     *   123456789 using part1by1 (OLD) took 0.569411s
-     *   123456789 using part1by1 (NEW) took 0.568838s
-     *   123456789 using part1by2 (OLD) took 0.615687s
-     *   123456789 using part1by2 (NEW) took 0.566951s
+     * for GPP in g++-5 g++-6; do echo "$GPP:"; for flag in '   ' -O0 -O1 -O2 -O3; do echo "  $flag:"; $GPP -x c++ $flag -Wall -Wextra -std=c++11 BitsCompileTime.hpp -DMAIN_TEST_BITSCOMPILETIME 2>/dev/null && ./a.out 2>&1 | sed -nr '/ took /p'; done; done
+     * @verbatim
+     * g++-5:
+     *   No Flags:
+     *     1234567890 using part1by1 (OLD) took 19.1245s
+     *     1234567890 using part1by1 (NEW) took 30.1481s
+     *     1234567890 using part1by2 (OLD) took 19.1973s
+     *     1234567890 using part1by2 (NEW) took 29.8871s
+     *   -O0:
+     *     1234567890 using part1by1 (OLD) took 19.2118s
+     *     1234567890 using part1by1 (NEW) took 29.5715s
+     *     1234567890 using part1by2 (OLD) took 19.1993s
+     *     1234567890 using part1by2 (NEW) took 29.7324s
+     *   -O1:
+     *     1234567890 using part1by1 (OLD) took 5.66236s
+     *     1234567890 using part1by1 (NEW) took 5.62838s
+     *     1234567890 using part1by2 (OLD) took 5.65219s
+     *     1234567890 using part1by2 (NEW) took 5.63415s
+     *   -O2:
+     *     1234567890 using part1by1 (OLD) took 5.66398s
+     *     1234567890 using part1by1 (NEW) took 5.63201s
+     *     1234567890 using part1by2 (OLD) took 5.64173s
+     *     1234567890 using part1by2 (NEW) took 5.66007s
+     *   -O3:
+     *     1234567890 using part1by1 (OLD) took 5.68837s
+     *     1234567890 using part1by1 (NEW) took 5.64835s
+     *     1234567890 using part1by2 (OLD) took 5.64818s
+     *     1234567890 using part1by2 (NEW) took 5.69607s
+     * g++-6:
+     *   No Flags:
+     *     1234567890 using part1by1 (OLD) took 19.2545s
+     *     1234567890 using part1by1 (NEW) took 29.9512s
+     *     1234567890 using part1by2 (OLD) took 19.1396s
+     *     1234567890 using part1by2 (NEW) took 29.6569s
+     *   -O0:
+     *     1234567890 using part1by1 (OLD) took 19.0805s
+     *     1234567890 using part1by1 (NEW) took 29.5035s
+     *     1234567890 using part1by2 (OLD) took 19.1712s
+     *     1234567890 using part1by2 (NEW) took 29.5699s
+     *   -O1:
+     *     1234567890 using part1by1 (OLD) took 5.63171s
+     *     1234567890 using part1by1 (NEW) took 5.63261s
+     *     1234567890 using part1by2 (OLD) took 5.65188s
+     *     1234567890 using part1by2 (NEW) took 6.12264s -> SLOWER than g++5
+     *   -O2:
+     *     1234567890 using part1by1 (OLD) took 5.67073s
+     *     1234567890 using part1by1 (NEW) took 5.66181s
+     *     1234567890 using part1by2 (OLD) took 6.1471s  -> SLOWER than -O1
+     *     1234567890 using part1by2 (NEW) took 6.13563s
+     *   -O3:
+     *     1234567890 using part1by1 (OLD) took 5.7056s
+     *     1234567890 using part1by1 (NEW) took 5.65694s
+     *     1234567890 using part1by2 (OLD) took 6.13513s
+     *     1234567890 using part1by2 (NEW) took 6.13791s
+     * @endverbatim
+     * Each of the above results were run 3 times to ensure we have not just
+     * an outlier for whatever reason
+     * => The inline keyword or -finline-small-functions as included in -O
+     *    slows down the dilute by two bits for whatever reason since g++6 -.-
+     * @see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84327
+     * @see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84328
+     *
+     * Unfortunately it seems I won't ever find out where the 3x speedup
+     * comes from, as even using -fno-optimization for all listed optimizations
+     * is still 5.6s fast :/
+     *
+     * antiO1Flags=$( g++ -O1 -Q --help=optimizers 2>/dev/null | sed -nr 's| -f|-fno-|; s|[ \t]*\[disabled\]||p;' | sed '/stack-protector/d' )
+     * g++ -x c++ -Wall -Wextra -O1 $antiO1Flags -std=c++11 BitsCompileTime.hpp -DMAIN_TEST_BITSCOMPILETIME && ./a.out
+     *  1234567890 using part1by1 (OLD) took 5.64657s
+     *  1234567890 using part1by1 (NEW) took 5.6359s
+     *  1234567890 using part1by2 (OLD) took 5.66952s
+     *  1234567890 using part1by2 (NEW) took 6.23457s
+     *
+     * The 'stack-protector' filter seems to be needed, because it can't be turned off:
+     *   g++: error: unrecognized command line option ‘-fno-stack-protector-all’; did you mean ‘-fstack-protector-all’?
+     *   g++: error: unrecognized command line option ‘-fno-stack-protector-explicit’; did you mean ‘-fstack-protector-explicit’?
+     *   g++: error: unrecognized command line option ‘-fno-stack-protector-strong’; did you mean ‘-fstack-protector-strong’?
      */
 }
 
