@@ -245,17 +245,19 @@ template< typename T, unsigned char nSpacing, unsigned char nStepsNeeded, unsign
 struct DiluteBitsCrumble { inline static T apply( T const & xLastStep )
 {
     auto x = DiluteBitsCrumble<T,nSpacing,nStepsNeeded,iStep-1>::apply( xLastStep );
-    //auto const x0 = x;
+    #ifdef PRINT_DILUTEBITSCRUMBLE_STEPS
+        auto const x0 = x;
+    #endif
     auto constexpr iStep2Pow = 1llu << ( (nStepsNeeded-1) - iStep );
     auto constexpr mask = BitPatterns::RectangularWave< T, iStep2Pow, iStep2Pow * nSpacing >::value;
     x = ( x | ( x << ( iStep2Pow * nSpacing ) ) ) & mask;
-    /*
-    std::cout
-    << "step " << (int) iStep << ": ( x=" << std::bitset< sizeof(T) * CHAR_BIT >( x0 )
-    << ", x | ( x << " << std::setw(2) << iStep2Pow * nSpacing << " ) ) & "
-    << std::bitset< sizeof(T) * CHAR_BIT >( mask ) << " -> "
-    << std::bitset< sizeof(T) * CHAR_BIT >( x ) << "\n";
-    */
+    #ifdef PRINT_DILUTEBITSCRUMBLE_STEPS
+        std::cout
+        << "step " << (int) iStep << ": ( x=" << std::bitset< sizeof(T) * CHAR_BIT >( x0 )
+        << ", x | ( x << " << std::setw(2) << iStep2Pow * nSpacing << " ) ) & "
+        << std::bitset< sizeof(T) * CHAR_BIT >( mask ) << " -> "
+        << std::bitset< sizeof(T) * CHAR_BIT >( x ) << "\n";
+    #endif
     return x;
 } };
 
